@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using Kudan.AR;
 using UnityEngine;
 
 namespace Assets.Scripts.MonoBehaviours
@@ -9,6 +10,8 @@ namespace Assets.Scripts.MonoBehaviours
 	{
 		private Material _material;
 		private AppController _appController;
+
+		public KudanTracker KudanTracker;
 
 		public void SetAsLocal(AppController appController)
 		{
@@ -26,14 +29,15 @@ namespace Assets.Scripts.MonoBehaviours
 			_material.color = Color.blue;
 		}
 
-		//[PunRPC]
-		//// ReSharper disable once UnusedMember.Global
-		//public void HitPawnRPC()
-		//{
-		//	if(!PhotonView.isMine)
-		//		_appController.GameController.RemoteHit(this);
-		//}
+		// ReSharper disable once UnusedMember.Local
+		private void Awake()
+		{
+			Vector3 position;
+			Quaternion orientation;
 
-		//public override void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info) { }
+			KudanTracker = FindObjectOfType<KudanTracker>();
+			KudanTracker.FloorPlaceGetPose(out position, out orientation);
+			KudanTracker.ArbiTrackStart(position, orientation);
+		}
 	}
 }

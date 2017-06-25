@@ -11,6 +11,7 @@ namespace Assets.Scripts.MonoBehaviours
 	public sealed partial class AppController : PunBehaviour
 	{
 		private const string PHOTON_ROOM_NAME = "test";
+		private const float DISTANDE = 5f;
 
 		private Coroutine _initialize;
 		private PhotonStateCode _connectionStateCode;
@@ -70,21 +71,27 @@ namespace Assets.Scripts.MonoBehaviours
 
 		private IEnumerator SpawnPawn(PhotonPlayer player)
 		{
+#if UNITY_EDITOR
+			var pawnRequest = Resources.LoadAsync<GameObject>("pawn_editor");
+#else
 			var pawnRequest = Resources.LoadAsync<GameObject>("pawn");
+#endif
 			yield return pawnRequest;
 
-			PawnObserver observer;
+			PawnObserver observer = null;
 			// pawn factory
 			if(player == null)
 			{
-				observer = Instantiate(pawnRequest.asset as GameObject, Vector3.left, Quaternion.identity).GetComponent<PawnObserver>();
+				observer = Instantiate(pawnRequest.asset as GameObject).GetComponent<PawnObserver>();
+				observer.transform.position = Vector3.left * (observer.GetComponent<SphereCollider>().radius + DISTANDE * .5f);
 				GameController.SetLocalPawn(observer, UIController.LocalPawnStatusBar);
 				observer.SetAsLocal(this);
 				UIController.LocalPawnStatusBar.SetForLocal(PawnState.HEALTH_START_I / (float)PawnState.HEALTH_MAX_I);
 			}
 			else
 			{
-				observer = Instantiate(pawnRequest.asset as GameObject, Vector3.right, Quaternion.identity).GetComponent<PawnObserver>();
+				observer = Instantiate(pawnRequest.asset as GameObject).GetComponent<PawnObserver>();
+				observer.transform.position = Vector3.right * (observer.GetComponent<SphereCollider>().radius + DISTANDE * .5f);
 				GameController.SetPawn(player, observer, UIController.RemotePawnStatusBar);
 				observer.SetAsRemote(this);
 				UIController.RemotePawnStatusBar.SetFroRemote(PawnState.HEALTH_START_I / (float)PawnState.HEALTH_MAX_I);
@@ -129,7 +136,17 @@ namespace Assets.Scripts.MonoBehaviours
 			}
 		}
 
-		private void ProcessTouchInput() { }
+		private void ProcessTouchInput()
+		{
+			var touch = Input.GetTouch(0); 
+			if(touch.phase == TouchPhase.Began)
+			{
+				var array = Physics.RaycastAll(Camera.main.ScreenPointToRay(touch.position));
+				var components = array.Select(_ => _.transform.GetComponent<PawnObserver>()).ToArray();
+				var component = components.FirstOrDefault(_ => !ReferenceEquals(_, null));
+				GameController.HitPawn(component);
+			}
+		}
 
 		// ReSharper disable once UnusedMember.Local
 		private void Awake()
